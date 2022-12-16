@@ -2,6 +2,7 @@ use std::{env, io::BufRead, io::BufReader};
 use std::fs::File;
 use corpus::{Corpus, PlainText};
 mod corpus;
+mod filter;
 
 fn main() {
     let path_to_list: String = env::var("PATH_TO_LIST")
@@ -35,6 +36,4 @@ fn main() {
     corpi.iter().for_each(move |c| 
         println!("{:?} {:?} {:?}", c.get_title(), c.get_author(), c.get_id())
     );
-    
-
 }
