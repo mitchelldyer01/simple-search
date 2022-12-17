@@ -1,62 +1,64 @@
+use rust_stemmers::{Algorithm, Stemmer};
+use regex::Regex;
 use crate::Corpus;
 
 trait Filter {
-    fn tokenize(&self) -> Vec<&str>;
-    fn to_lowercase(&self) -> Vec<&str>;
-    fn remove_punctuation(&self) -> Vec<&str>;
-    fn remove_stopwords(&self) -> Vec<&str>;
-    // fn apply_stemming(&self) -> Self;
+    fn tokenize(&self) -> Vec<String>;
+    fn to_lowercase(self);
+    fn remove_punctuation(self);
+    fn remove_stopwords(self);
+    fn apply_stemming(self);
     // fn parse_text(&self) -> Self;
     // fn count_frequencies(&self) -> Vec<TermPerDocument> {}
 }
 
 struct CorpusFilter<'a> {
     document: &'a dyn Corpus,
-    tokens: Vec<&'a str>,
+    tokens: Vec<String>,
 }
 
 impl Filter for CorpusFilter<'_> {
-    fn tokenize(&self) -> Vec<&str> {
-        self.document.get_body().split(" ").collect()
+    fn tokenize(&self) -> Vec<String> {
+        self.document.get_body().split_whitespace().map(str::to_string).collect()
     }
 
-    fn to_lowercase(&self) -> Vec<&str> {
-        self.tokens
-            .iter_mut()
-            .for_each(
-                move |token| {
-                    token = &mut token.to_lowercase().as_str()
-                });
-
-        self.tokens
-    }
-
-    fn remove_punctuation(&self) -> Vec<&str> {
-        self.tokens
-            .iter_mut()
-            .for_each(
-                |token| {
-                    token
-                    .chars()
-                    .filter(|c| is_punctuation(c))
-                    .for_each(
-                        |c| {
-                            token.replace(c, "");
-                        }
-                    )
-                }
-            );
-
-        self.tokens
-    }
-
-    fn remove_stopwords(&self) -> Vec<&str> {
-        self.tokens
+    fn to_lowercase(mut self) {
+        self.tokens = self.tokens
             .iter()
-            .filter(|token| !is_stopword(token) )
-            .map(|token| token.as_ref() )
-            .collect()
-            
+            .map(
+                |token| {
+                    token.to_lowercase().to_string()
+                }
+            )
+            .collect();
+    }
+
+    fn remove_punctuation(mut self) {
+        self.tokens = self.tokens
+            .iter()
+            .map(
+                |token| {
+                    replace_punctuation(token, "")
+                }
+            )
+            .collect();
+    }
+
+    fn remove_stopwords(mut self) {
+        self.tokens = self.tokens.iter().filter(|token| !is_stopword(*token)).cloned().collect();
+    }
+
+    fn apply_stemming(mut self) {
+        let en_stemmer = Stemmer::create(Algorithm::English);
+
+        self.tokens = self.tokens
+            .iter()
+            .map(
+                |token| {
+                    token.replace(token, en_stemmer.stem(token).to_string().as_str())
+                }
+            )
+            .collect();
     }
 }
 
@@ -64,10 +66,18 @@ struct QueryFilter {
     query: String,
 }
 
-impl Filter for QueryFilter {}
+// impl Filter for QueryFilter {}
 
-fn is_punctuation(c: &char) -> bool {
-    c.eq(&'!') || c.eq(&'\\') || c.eq(&'#') || c.eq(&'$') || c.eq(&'%') || c.eq(&'&') || c.eq(&'/') || c.eq(&'(') || c.eq(&')') || c.eq(&'*') || c.eq(&'+') || c.eq(&'-') || c.eq(&',') || c.eq(&'.') || c.eq(&':') || c.eq(&';') || c.eq(&'<') || c.eq(&'=') || c.eq(&'>') || c.eq(&'?') || c.eq(&'@') || c.eq(&'[') || c.eq(&']') || c.eq(&'^') || c.eq(&'`') || c.eq(&'{') || c.eq(&'}') || c.eq(&'|')
+fn replace_punctuation(word: &str, replacement: &str) -> String {
+    /*
+    [   Character block start.
+    ^   Not these characters (letters, numbers).
+    \w  Word characters.
+    \s  Space characters.
+    ]   Character block end.
+     */
+    let regexer = Regex::new(r"[^\w\s]").unwrap();
+    regexer.replace_all(word, replacement).to_string()
 }
 
 fn is_stopword(token: &str) -> bool {
