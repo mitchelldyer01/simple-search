@@ -2,12 +2,68 @@ use rust_stemmers::{Algorithm, Stemmer};
 use regex::Regex;
 use crate::Corpus;
 
+const STOPWORDS: [&'static str; 25] = ["the", "be", "to", "of", "and",
+                                    "a", "in", "that", "have", "i",
+                                    "it", "for", "not", "on", "with",
+                                    "he", "as", "you", "do", "at",
+                                    "this", "but", "his", "by", "from"];
+
 trait Filter {
-    fn tokenize(&self) -> Vec<String>;
-    fn to_lowercase(self);
-    fn remove_punctuation(self);
-    fn remove_stopwords(self);
-    fn apply_stemming(self);
+    fn tokenize(body: String) -> Vec<String> {
+        body.split_whitespace().map(str::to_string).collect()
+    }
+
+    fn to_lowercase(tokens: Vec<String>) -> Vec<String> {
+        tokens
+            .iter()
+            .map(
+                |token| {
+                    token.to_lowercase().to_string()
+                }
+            )
+            .collect()
+    }
+
+    fn remove_punctuation(tokens: Vec<String>) -> Vec<String> {
+        tokens
+            .iter()
+            .map(
+                |token| {
+                    replace_punctuation(token, "")
+                }
+            )
+            .collect()
+    }
+
+    fn remove_stopwords(tokens: Vec<String>) -> Vec<String> {
+        tokens
+            .iter()
+            .filter(
+                |token| !is_stopword(*token)
+            )
+            .cloned()
+            .collect()
+    }
+
+    fn apply_stemming(tokens: Vec<String>) -> Vec<String> {
+        let en_stemmer = Stemmer::create(Algorithm::English);
+
+        tokens
+            .iter()
+            .map(
+                |token| {
+                    token
+                        .replace(
+                            token,
+                            en_stemmer
+                                .stem(token)
+                                .to_string()
+                                .as_str()
+                        )
+                }
+            )
+            .collect()
+    }
     // fn parse_text(&self) -> Self;
     // fn count_frequencies(&self) -> Vec<TermPerDocument> {}
 }
@@ -17,56 +73,14 @@ struct CorpusFilter<'a> {
     tokens: Vec<String>,
 }
 
-impl Filter for CorpusFilter<'_> {
-    fn tokenize(&self) -> Vec<String> {
-        self.document.get_body().split_whitespace().map(str::to_string).collect()
-    }
-
-    fn to_lowercase(mut self) {
-        self.tokens = self.tokens
-            .iter()
-            .map(
-                |token| {
-                    token.to_lowercase().to_string()
-                }
-            )
-            .collect();
-    }
-
-    fn remove_punctuation(mut self) {
-        self.tokens = self.tokens
-            .iter()
-            .map(
-                |token| {
-                    replace_punctuation(token, "")
-                }
-            )
-            .collect();
-    }
-
-    fn remove_stopwords(mut self) {
-        self.tokens = self.tokens.iter().filter(|token| !is_stopword(*token)).cloned().collect();
-    }
-
-    fn apply_stemming(mut self) {
-        let en_stemmer = Stemmer::create(Algorithm::English);
-
-        self.tokens = self.tokens
-            .iter()
-            .map(
-                |token| {
-                    token.replace(token, en_stemmer.stem(token).to_string().as_str())
-                }
-            )
-            .collect();
-    }
-}
+impl Filter for CorpusFilter<'_> {}
 
 struct QueryFilter {
     query: String,
+    tokens: Vec<String>,
 }
 
-// impl Filter for QueryFilter {}
+impl Filter for QueryFilter {}
 
 fn replace_punctuation(word: &str, replacement: &str) -> String {
     /*
@@ -81,5 +95,17 @@ fn replace_punctuation(word: &str, replacement: &str) -> String {
 }
 
 fn is_stopword(token: &str) -> bool {
-    token.eq("the") || token.eq("be") || token.eq("to") || token.eq("of") || token.eq("and") || token.eq("a") || token.eq("in") || token.eq("that") || token.eq("have") || token.eq("i") || token.eq("it") || token.eq("for") || token.eq("not") || token.eq("on") || token.eq("with") || token.eq("he") || token.eq("as") || token.eq("you") || token.eq("do") || token.eq("at") || token.eq("this") || token.eq("but") || token.eq("his") || token.eq("by") || token.eq("from")
+    STOPWORDS.iter().any(|stopword| token.to_string().eq(stopword))
+}
+
+#[test]
+fn test_is_stopword() {
+    assert_eq!(is_stopword("the"), true);
+    assert_eq!(is_stopword("plato"), false);
+}
+
+#[test]
+fn test_replace_punctuation() {
+    assert_eq!(replace_punctuation("dog", ""), "dog");
+    assert_eq!(replace_punctuation("dog.,/\\<>!@#$%^&*()-=+[]{}|", ""), "dog");
 }
