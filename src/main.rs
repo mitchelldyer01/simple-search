@@ -1,6 +1,7 @@
 use std::{env, io::BufRead, io::BufReader};
 use std::fs::File;
-use corpus::{Corpus, PlainText};
+use corpus::{PlainText};
+use crate::filter::{CorpusFilter};
 mod corpus;
 mod filter;
 
@@ -33,7 +34,15 @@ fn main() {
         }
     };
 
-    corpi.iter().for_each(move |c| 
-        println!("{:?} {:?} {:?}", c.get_title(), c.get_author(), c.get_id())
-    );
+    let mut corpi_filters: Vec<CorpusFilter> = Vec::new();
+
+    corpi
+        .iter()
+        .for_each(
+            |corpus|{
+                let filter = CorpusFilter::new(corpus);
+                corpi_filters.push(filter);
+            }
+        );
+    
 }
