@@ -41,15 +41,15 @@ fn main() {
     let filter = Filter{};
     let mut index = InvertedIndex::new();
 
-    corpi
-        .iter()
+    corpi.iter()
         .for_each(
             |corpus|{
                 corpus.get_body()
                     .iter()
                     .for_each(|word| {
                         if !is_stopword(word) {
-                            index.add_document(
+                            println!("{}", word);
+                            index.update_document(
                                 filter.clean(word.to_string(), &stemmer), 
                                 corpus.get_title().to_string());
                         }
@@ -57,4 +57,7 @@ fn main() {
                 )
             }
         );
+    
+    index.print();
+    
 }
