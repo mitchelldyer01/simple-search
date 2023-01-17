@@ -1,33 +1,27 @@
 use reqwest::Error as ReqError;
 
-pub trait Corpus {
-    fn get_id(&self) -> &u32;
-    fn get_title(&self) -> &String;
-    fn get_author(&self) -> &String;
-    fn get_body(&self) -> &String;
-}
-
+#[derive(Debug)]
 pub struct PlainText {
     id: u32,
     title: String,
-    body: String,
+    body: Vec<String>,
     author: String,
 }
 
-impl Corpus for PlainText{
-    fn get_id(&self) -> &u32 {
+impl PlainText{
+    pub fn get_id(&self) -> &u32 {
         &self.id
     }
 
-    fn get_title(&self) -> &String {
+    pub fn get_title(&self) -> &String {
         &self.title
     }
 
-    fn get_author(&self) -> &String {
+    pub fn get_author(&self) -> &String {
         &self.author
     }
 
-    fn get_body(&self) -> &String {
+    pub fn get_body(&self) -> &Vec<String> {
         &self.body
     }
 }
@@ -47,7 +41,7 @@ impl PlainText {
             id: id,
             title: Self::set_title(&text),
             author: Self::set_author(&text),
-            body: text,
+            body: Self::set_body(&text),
         }) 
     }
 
@@ -65,6 +59,10 @@ impl PlainText {
             String::from("Author: ")
         )
         .replace("Author: ", "")
+    }
+
+    fn set_body(text: &String) -> Vec<String> {
+        text.split_whitespace().map(str::to_string).collect()
     }
 
     fn search_for_line(text: String, query: String) -> String {

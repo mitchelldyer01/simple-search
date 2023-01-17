@@ -1,5 +1,4 @@
-use crate::corpus::{Corpus};
-use rust_stemmers::{Algorithm, Stemmer};
+use rust_stemmers::{Stemmer};
 use regex::Regex;
 
 const STOPWORDS: [&'static str; 25] = ["the", "be", "to", "of", "and",
@@ -8,91 +7,15 @@ const STOPWORDS: [&'static str; 25] = ["the", "be", "to", "of", "and",
                                     "he", "as", "you", "do", "at",
                                     "this", "but", "his", "by", "from"];
 
-trait Filter {
-    fn tokenize(body: String) -> Vec<String> {
-        body.split_whitespace().map(str::to_string).collect()
-    }
+pub struct Filter {}
 
-    fn clean(&mut self) {}
-
-    fn to_lowercase(&mut self) {}
-
-    fn remove_punctuation(&mut self) {}
-
-    fn remove_stopwords(&mut self) {}
-
-    fn apply_stemming(&mut self) {}
-    // fn parse_text(&self) -> Self;
-    // fn count_frequencies(&self) -> Vec<TermPerDocument> {}
-}
-
-pub struct CorpusFilter {
-    tokens: Vec<String>,
-}
-
-impl Filter for CorpusFilter {
-    fn clean(&mut self) {
-        let en_stemmer = Stemmer::create(Algorithm::English);
-
-        let clean_iter = self.tokens.iter()
-            .map(
-                |token| {
-                    token.to_lowercase().to_string();
-                    replace_punctuation(token, "");
-                    token.replace(token,
-                            en_stemmer
-                                .stem(token)
-                                .to_string()
-                                .as_str()
-                    )
-                }
-            );
-
-        let stripped_iter: Vec<String> = clean_iter.collect();
-
-        let filtered_iter = stripped_iter
-            .into_iter()
-            .filter(
-                |token| !is_stopword(token)
-        );
-
-        self.tokens = filtered_iter.collect();
-    }
-
-}
-impl CorpusFilter {
-    pub fn new(doc: & dyn Corpus) -> CorpusFilter {
-        let mut filter = Self{
-            tokens: Self::tokenize(doc.get_body().to_string()),
-        };
-
-        filter.clean();
-
-        filter
-    }
-}
-
-struct QueryFilter {
-    query: String,
-    tokens: Vec<String>,
-}
-
-impl Filter for QueryFilter {}
-impl QueryFilter {
-    fn new(q: &str) -> QueryFilter {
-        let query = q.to_string();
-        
-        let mut filter = Self { 
-            query: query.clone(), 
-            tokens: Self::tokenize(query.clone()) 
-        };
-
-        filter.to_lowercase();
-        filter.remove_punctuation();
-        filter.remove_stopwords();
-        filter.apply_stemming();
-
-        filter
+impl Filter {
+    pub fn clean(&self, token: String, stemmer: &Stemmer) -> String {
+        let mut filtered = token;
+        filtered = filtered.to_lowercase();
+        filtered = replace_punctuation(&filtered, "");
+        filtered = filtered.replace(&filtered, stemmer.stem(&filtered).to_string().as_str());
+        filtered
     }
 }
 
@@ -108,7 +31,7 @@ fn replace_punctuation(word: &str, replacement: &str) -> String {
     regexer.replace_all(word, replacement).to_string()
 }
 
-fn is_stopword(token: &str) -> bool {
+pub fn is_stopword(token: &str) -> bool {
     STOPWORDS.iter().any(|stopword| token.to_string().eq(stopword))
 }
 
@@ -125,10 +48,14 @@ fn test_replace_punctuation() {
 }
 
 #[test]
-fn test_filters() {
-    const TEST_QUERY: &str = "TEST CASE! PLEASE IGNORE IT, THANKFULLY";
+fn test_clean() {
+    const TEST_TOKENS: [&'static str; 5] = ["TEST", "CASE!", "PLEASE", "IGNORE,", "THANKFULLY"];
     const FILTERED_TEST_QUERY: [&'static str; 5] = ["test", "case", "pleas", "ignor", "thank"];
 
-    let query = QueryFilter::new(TEST_QUERY);
-    assert_eq!(query.tokens, FILTERED_TEST_QUERY);
+    let f = Filter{};
+    let en_stemmer = Stemmer::create(rust_stemmers::Algorithm::English);
+
+    for i in 0..FILTERED_TEST_QUERY.len() {
+        assert_eq!(f.clean(TEST_TOKENS[i].to_string(), &en_stemmer), FILTERED_TEST_QUERY[i]);
+    }
 }

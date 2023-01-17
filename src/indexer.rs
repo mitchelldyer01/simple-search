@@ -1,19 +1,18 @@
-struct TermPerDocument {
-    id: u32,
-    term: String,
-    term_frequency: u32,
-}
+use std::collections::HashMap;
 
-struct InvertedIndex {
-    token: String,
-    documents: Vec<TermPerDocument>,
-    inv_doc_freq: u32,
-    relevancy: u32,
+pub struct InvertedIndex {
+    index: HashMap<String, Vec<String>>
 }
 
 impl InvertedIndex {
-    fn calc_inv_doc_freq(&self) -> &self {}
-    fn calc_relevancy(&self) -> &self {}
-    fn store_on_disk(&self) -> &self {}
-    fn find_on_disk(&self) -> &self {}
+    pub fn new() -> Self {
+        InvertedIndex{
+            index: HashMap::new(),
+        }
+    }
+
+    pub fn add_document(&mut self, token: String, id: String) {
+        let entry = self.index.entry(token).or_insert(Vec::new());
+        entry.push(id);
+    }
 }

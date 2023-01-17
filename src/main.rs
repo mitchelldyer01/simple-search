@@ -1,9 +1,12 @@
 use std::{env, io::BufRead, io::BufReader};
 use std::fs::File;
+use rust_stemmers::{Algorithm, Stemmer};
 use corpus::{PlainText};
-use crate::filter::{CorpusFilter};
+use filter::{Filter, is_stopword};
+use indexer::InvertedIndex;
 mod corpus;
 mod filter;
+mod indexer;
 
 fn main() {
     let path_to_list: String = env::var("PATH_TO_LIST")
@@ -34,15 +37,24 @@ fn main() {
         }
     };
 
-    let mut corpi_filters: Vec<CorpusFilter> = Vec::new();
+    let stemmer = Stemmer::create(Algorithm::English);
+    let filter = Filter{};
+    let mut index = InvertedIndex::new();
 
     corpi
         .iter()
         .for_each(
             |corpus|{
-                let filter = CorpusFilter::new(corpus);
-                corpi_filters.push(filter);
+                corpus.get_body()
+                    .iter()
+                    .for_each(|word| {
+                        if !is_stopword(word) {
+                            index.add_document(
+                                filter.clean(word.to_string(), &stemmer), 
+                                corpus.get_title().to_string());
+                        }
+                    }
+                )
             }
         );
-    
 }
