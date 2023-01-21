@@ -1,11 +1,11 @@
 # simple-search
 
-A simple search engine for HTML documents.
-Filters HTML documents into an inverted index.
+A simple search engine for plaintext documents.
+Filters plaintext documents into an inverted index.
 Search ranks results by the number of occurences
 of search terms per document.
 
-The list of HTML documents it indexes
+The list of plaintext documents it indexes
 is in [list][].
 
 ## Run
